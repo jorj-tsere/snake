@@ -13,6 +13,23 @@ var game = {
   busy:false,
   point:-1,
   gameOverInterval:null,
+  playerName:'',
+  posiblePointCoords: {row:null,ind:null},
+  submitPleyer:function(){
+      this.playerName = document.getElementById('playerName').value.trim();
+      if(this.playerName.length < 1) return alert('write your name(nickname).');
+
+      localStorage.setItem("activePlayer", this.playerName);
+
+      document.getElementById('submitPleyer').setAttribute('disabled','disabled');
+      document.getElementById("textInfo").innerHTML = "<p>please wait...<p>";
+      setTimeout(function(){
+          game.init();
+          document.getElementById("userLogin").classList.add("hiddenObject");
+          document.getElementById("mainWrapper").classList.remove("hiddenObject");
+          game.startGame();
+      },1400);
+  },
   resetGameParameters:function(){
       this.rows=null;
       this.direction=null;
@@ -39,13 +56,13 @@ var game = {
       for(var i = 1;i<4;i++){
         this.snakeCoords.push({row:2,ind:i});
       }
-      this.gameIsStarted = true;
-      
+      document.getElementById('playerFullname').innerHTML = this.playerName;
       document.onkeydown = this.changeDirection;
   },
   startGame:function(){
+      this.gameIsStarted = true;
       this.setCoords();
-      this.setDirection('right'); 
+      this.setDirection('right');
       this.getNewPointBox();
   },
   setDirection:function(dir,isManual = false){
@@ -60,36 +77,28 @@ var game = {
     var parent = element.parentNode;
     var ind = [].indexOf.call(parent.children, element);
     var row = parseInt(parent.getAttribute("index"));
-    return {row:row,ind:ind};  
+    return {row:row,ind:ind};
   },
   setCoords:function(){
     if(this.busy) return;
     this.busy = true;
     var self = this;
-    var pointsCoords = self.getPointsCoords(); 
+    var pointsCoords = self.getPointsCoords();
     var isPoint = false;
     var snakeHead = this.snakeCoords[this.snakeCoords.length-1];
     var snakeTail = this.snakeCoords[0];
-    
+
     if(pointsCoords.row == snakeHead.row && pointsCoords.ind == snakeHead.ind) {
-      isPoint = true  
-      var newRow,newInd; 
-      self.removeOldPoint(); 
-      if(self.direction == 'up' || self.direction == 'down'){
-        newRow = snakeTail.row - 1;
-        newInd = snakeTail.ind; 
-      }else{
-        newRow = snakeTail.row;
-        newInd = snakeTail.ind - 1; 
-      }   
-      this.snakeCoords.unshift({row:newRow,ind:newInd});
-    } 
-    var lastIndex = this.snakeCoords.length-1;  
+      isPoint = true;
+      self.removeOldPoint();
+      this.snakeCoords.unshift({row:self.posiblePointCoords.row,ind:self.posiblePointCoords.ind});
+    }
+    var lastIndex = this.snakeCoords.length-1;
     this.snakeCoords.forEach(function(el,ind){
       if(lastIndex == ind) self.rows[el.row].querySelectorAll('.box')[el.ind].classList.add('snakeHead');
       self.rows[el.row].querySelectorAll('.box')[el.ind].classList.add('black');
     });
-    if(isPoint) self.getNewPointBox(); 
+    if(isPoint) self.getNewPointBox();
     this.busy = false;
     return self;
   },
@@ -115,20 +124,16 @@ var game = {
     return document.querySelectorAll(query);
   },
   removeOldCoords:function(){
-    var self = this;
-    this.get('.black').forEach(function(el){
-      el.classList.remove('black');
-       el.classList.remove('snakeHead');
-    })
-    return self;
+    this.get('.black').forEach(el => el.classList.remove('black','snakeHead'));
+    return this;
   },
   runSnakeRun:function(changeDir = false){
     var self = game;
     var newRow,newInd;
-    
+
     // CLEAR INTERVAL
     if(changeDir) clearInterval(self.interval);
-    
+
     var newCoords = self.snakeCoords.map(function(el,ind){
         // debugger;
         var nextInd = self.snakeCoords[ind+1];
@@ -136,11 +141,11 @@ var game = {
         if(typeof nextInd == 'undefined'){
           //snake head
           switch(self.direction){
-            case 'right': 
+            case 'right':
               newRow = el.row;
               newInd = (el.ind + 1 >= self.boardLength) ? 0 : el.ind + 1;
             break;
-            case 'left': 
+            case 'left':
               newRow = el.row;
               newInd = (el.ind - 1 < 0) ? self.boardLength - 1 : el.ind - 1;
             break;
@@ -155,6 +160,7 @@ var game = {
           }
         }
         else{
+          if(ind == 0) self.savePosiblePointCoords(el);
           newRow = nextInd.row;
           newInd = nextInd.ind;
         }
@@ -166,10 +172,11 @@ var game = {
     self.removeOldCoords().setCoords();
     if(changeDir) this.interval = setInterval(this.runSnakeRun,this.speed);
   },
+  savePosiblePointCoords:function(el){
+    this.posiblePointCoords.row = el.row;
+    this.posiblePointCoords.ind = el.ind;
+  },
   checkCoords:function(arr,row,ind){
-    console.log(arr)
-    console.log(row)
-    console.log(ind)
     var gameContinues = true;
     for(var obj of arr){
       if(obj.row == row && obj.ind == ind) return gameContinues = false;
@@ -180,22 +187,28 @@ var game = {
     var self = this;
     clearInterval(this.interval);
     this.gameIsStarted = false;
-    
+
     self.gameOverInterval = setInterval(function(){
-      self.get('.black').forEach(function(el,ind){ el.classList.toggle('fakeBlack'); }); 
+      self.get('.black').forEach(function(el,ind){ el.classList.toggle('fakeBlack'); });
     },200);
-   
+
     setTimeout(self.setGameOverContent,2000);
   },
   setGameOverContent:function(){
     var self = game;
     clearInterval(self.gameOverInterval);
-    var gamoOverObject = document.getElementById('gameOverObject'); 
-    gamoOverObject.style.width = self.board.offsetWidth + "px";
-    gamoOverObject.style.height = self.board.offsetHeight + "px";
-    document.getElementById('userScoreValue').innerHTML = self.point;
-    var restartContent = document.getElementById('hiddenObject').innerHTML;
-    self.board.innerHTML = restartContent;
+    var gameOverTextNode = document.createElement("h2");
+    gameOverTextNode.id =  "gameOverTextNode";
+    gameOverTextNode.innerHTML = "GAME OVER";
+    var restartButton = document.createElement('button');
+    restartButton.innerHTML = "play again";
+    restartButton.setAttribute('onClick','game.restartGame()');
+    restartButton.classList.add('btn');
+    self.board.style.width = self.board.offsetWidth + "px";
+    self.board.style.height = self.board.offsetHeight + "px";
+    self.board.innerHTML = "";
+    self.board.appendChild(gameOverTextNode);
+    self.board.appendChild(restartButton);
   },
   restartGame:function(){
     this.board.innerHTML = "";
@@ -206,11 +219,10 @@ var game = {
   changeDirection:function(e){
     var self = game;
     if(!self.gameIsStarted) return;
-
       switch(e.keyCode){
         // up arrow
         case 38:
-          if(self.direction != 'down') self.setDirection('up',true);   
+          if(self.direction != 'down') self.setDirection('up',true);
         break;
         // down arrow
         case 40:
@@ -229,4 +241,4 @@ var game = {
   }
 }
 
-game.init();
+//game.init();

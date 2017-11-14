@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,21 +9,27 @@
 </head>
 <body>
   <br />
-  <br />
-  <div id="actions">
-    <buttom type="button" class="btn" onClick="game.startGame()">start game</buttom>
-    <br/><br/>
-    <h1>your score : <b id='playerScore'>0</b></h1>
+  <div id="userLogin">
+    <img src="./snake.svg" alt="snake" width="60px">
+    <br /><br />
+    <input type="text" id="playerName" placeholder="your name here...">
+    <br/>
+    <br/>
+    <button id="submitPleyer" type="button" onClick="game.submitPleyer()" class='btn'>play</button>
+    </br/>
+    <div id="textInfo"></div>
   </div>
   <br />
-  <div id="board"></div>
-
-  <div id="hiddenObject">
-    <div id="gameOverObject">
-      <h1 id="userScore">your score: <b id='userScoreValue'></b></h1>
-      <button type="button" id="restart" class="btn" onClick="game.restartGame()">restart</button>
+  <div id="mainWrapper" class="hiddenObject">
+    <div id="actions">
+      <h2>player: <b id="playerFullname"></b></h2>
+      <p>your score : <b id='playerScore'>0</b></p>
     </div>
+    <br />
+    <div id="board"></div>
   </div>
+
+
   <script src="script.js"></script>
 </body>
 </html>
