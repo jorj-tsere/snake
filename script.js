@@ -18,7 +18,7 @@ var game = {
   posiblePointCoords: {row:null,ind:null},
   playerMaxScore:0,
   tryStartGame:function(e){
-    var element = document.getElementById('userLogin');
+    var element = game.getid('userLogin');
     if(e.keyCode == 13 && !element.classList.contains('hiddenObject')) game.submitPleyer('playerName');
   },
   resetGameParameters:function(){
@@ -42,7 +42,7 @@ var game = {
     return player.maxScore;
   },
   submitPleyer:function(inputID){
-      var name = document.getElementById(inputID).value.trim();
+      var name = this.getid(inputID).value.trim();
       if(name.length < 1) return alert('write your name(nickname).');
       
       this.playerName = name;
@@ -53,14 +53,14 @@ var game = {
         players.push(playerObj)
         localStorage.setItem("players", JSON.stringify(players));  
       }     
-      document.getElementById('submitPleyer').setAttribute('disabled','disabled');
-      this.get('.textInfo').forEach(el => el.classList.remove('hiddenObject'));
+      this.getid('submitPleyer').setAttribute('disabled','disabled');
+      this.getAll('.textInfo').forEach(el => el.classList.remove('hiddenObject'));
       var self = this;
       setTimeout(function(){
           self.board.innerHTML = "";
           game.init();
-          document.getElementById("userLogin").classList.add("hiddenObject");
-          document.getElementById("mainWrapper").classList.remove("hiddenObject");
+          self.getid("userLogin").classList.add("hiddenObject");
+          self.getid("mainWrapper").classList.remove("hiddenObject");
           game.startGame();
       },1400);
   },
@@ -78,9 +78,9 @@ var game = {
         }
   },
   init:function(){
-      this.get('.textInfo').forEach(el=>el.classList.add('hiddenObject'));
+      this.getAll('.textInfo').forEach(el=>el.classList.add('hiddenObject'));
       this.drawBoard();
-      this.rows = this.get('.row');
+      this.rows = this.getAll('.row');
       for(var i = 1;i<4;i++){
         this.snakeCoords.push({row:2,ind:i});
       }
@@ -103,7 +103,7 @@ var game = {
   },
   getPointsCoords:function(){
     var self = this;
-    var element = self.get('.green')[0];
+    var element = self.getAll('.green')[0];
     if(typeof element == 'undefined') return {row:-1,ind:-1};
     var parent = element.parentNode;
     var ind = [].indexOf.call(parent.children, element);
@@ -134,7 +134,7 @@ var game = {
     return self;
   },
   removeOldPoint:function(){
-    this.get('.green')[0].classList.remove('green');
+    this.getAll('.green')[0].classList.remove('green');
   },
   getRandomIndex:function (min,max)
   {
@@ -145,18 +145,21 @@ var game = {
       this.speed -= 1;
       this.updatePlayerMaxScore(); 
       this.updateLeaderBoard();
-      document.getElementById("playerScore").innerHTML = this.point;
+      this.getid("playerScore").innerHTML = this.point;
       var boxes = document.querySelectorAll('.box');
       var randomIndex = this.getRandomIndex(0,boxes.length-1);
       var randomBox = boxes[randomIndex];
       if(randomBox.classList.contains('black')) return this.getNewPointBox();
       else randomBox.classList.add('green');
   },
-  get:function(query){
+  getAll:function(query){
     return document.querySelectorAll(query);
   },
+  getid:function(elem){
+    return document.getElementById(elem);
+  },
   removeOldCoords:function(){
-    this.get('.black').forEach(el => el.classList.remove('black','snakeHead'));
+    this.getAll('.black').forEach(el => el.classList.remove('black','snakeHead'));
     return this;
   },
   runSnakeRun:function(changeDir = false){
@@ -235,9 +238,9 @@ var game = {
     clearInterval(this.interval);
     this.gameIsStarted = false;
     this.updatePlayerMaxScore();
-    document.getElementById('playerRecord').innerHTML = this.playerMaxScore;
+    this.getid('playerRecord').innerHTML = this.playerMaxScore;
     self.gameOverInterval = setInterval(function(){
-      self.get('.black').forEach(function(el,ind){ el.classList.toggle('fakeBlack'); });
+      self.getAll('.black').forEach(function(el,ind){ el.classList.toggle('fakeBlack'); });
     },200);
 
     setTimeout(self.setGameOverContent,2000);
@@ -247,12 +250,12 @@ var game = {
     clearInterval(self.gameOverInterval);
     self.board.style.width = self.board.offsetWidth + "px";
     self.board.style.height = self.board.offsetHeight + "px";
-    self.board.innerHTML = document.getElementById('gameOverContent').innerHTML;
+    self.board.innerHTML = self.getid('gameOverContent').innerHTML;
     self.resetGameParameters();
     self.updateLeaderBoard();
   },
   changePlayer:function(){
-    var newPlayer = document.getElementById('playerName').value.trim();
+    var newPlayer = this.getid('playerName').value.trim();
     if(newPlayer.length < 1) return alert('type new player name!');
     this.playerName = newPlayer;
   },
@@ -286,7 +289,7 @@ var game = {
   },
   updateLeaderBoard:function(){
     var self = this;
-    var tbody = document.getElementById('tbody');
+    var tbody = self.getid('tbody');
     
     var players = JSON.parse(localStorage.getItem('players')).sort(function(x,y){ return y.maxScore-x.maxScore; })
     if(!players.length) return;
