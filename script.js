@@ -1,5 +1,6 @@
 
 NodeList.prototype.forEach = HTMLCollection.prototype.forEach = Array.prototype.forEach;
+//localStorage.setItem("players", JSON.stringify([]));
 var mainInterval = null;
 var game = {
   board:document.getElementById("board"),
@@ -15,20 +16,10 @@ var game = {
   gameOverInterval:null,
   playerName:'',
   posiblePointCoords: {row:null,ind:null},
-  submitPleyer:function(){
-      this.playerName = document.getElementById('playerName').value.trim();
-      if(this.playerName.length < 1) return alert('write your name(nickname).');
-
-      localStorage.setItem("activePlayer", this.playerName);
-
-      document.getElementById('submitPleyer').setAttribute('disabled','disabled');
-      document.getElementById("textInfo").innerHTML = "<p>please wait...<p>";
-      setTimeout(function(){
-          game.init();
-          document.getElementById("userLogin").classList.add("hiddenObject");
-          document.getElementById("mainWrapper").classList.remove("hiddenObject");
-          game.startGame();
-      },1400);
+  playerMaxScore:0,
+  tryStartGame:function(e){
+    var element = document.getElementById('userLogin');
+    if(e.keyCode == 13 && !element.classList.contains('hiddenObject')) game.submitPleyer('playerName');
   },
   resetGameParameters:function(){
       this.rows=null;
@@ -40,26 +31,66 @@ var game = {
       this.busy=false;
       this.point=-1;
   },
-  init:function(){
+  checkPlayerName:function(name){
+    var playerExists = false;
+    var players = JSON.parse(localStorage.getItem('players'));
+    players.forEach(function(player){if(player.nickName == name) playerExists = true;});
+    return playerExists;
+  },
+  getPlayerMaxScore:function(){
+    var player = JSON.parse(localStorage.getItem('players')).find(function(el){ if(el.nickName == game.playerName) return el; });
+    return player.maxScore;
+  },
+  submitPleyer:function(inputID){
+      var name = document.getElementById(inputID).value.trim();
+      if(name.length < 1) return alert('write your name(nickname).');
+      
+      this.playerName = name;
+      localStorage.setItem("activePlayer", this.playerName);
+      if(!this.checkPlayerName(this.playerName)){
+        var players = JSON.parse(localStorage.getItem('players'));
+        var playerObj = {nickName:this.playerName,maxScore:0};
+        players.push(playerObj)
+        localStorage.setItem("players", JSON.stringify(players));  
+      }     
+      document.getElementById('submitPleyer').setAttribute('disabled','disabled');
+      this.get('.textInfo').forEach(el => el.classList.remove('hiddenObject'));
+      var self = this;
+      setTimeout(function(){
+          self.board.innerHTML = "";
+          game.init();
+          document.getElementById("userLogin").classList.add("hiddenObject");
+          document.getElementById("mainWrapper").classList.remove("hiddenObject");
+          game.startGame();
+      },1400);
+  },
+  drawBoard:function(){
       for(var i = 0; i<this.boardLength;i++){
-        var row = document.createElement("div");
-        row.classList.add('row');
-        row.setAttribute('index',i);
-        for(var j = 0; j<this.boardLength;j++){
-          var div = document.createElement("div");
-          div.classList.add("box");
-          row.appendChild(div);
+          var row = document.createElement("div");
+          row.classList.add('row');
+          row.setAttribute('index',i);
+          for(var j = 0; j<this.boardLength;j++){
+            var div = document.createElement("div");
+            div.classList.add("box");
+            row.appendChild(div);
+          }
+          this.board.appendChild(row);
         }
-        this.board.appendChild(row);
-      }
-      this.rows = document.querySelectorAll('.row');
+  },
+  init:function(){
+      this.get('.textInfo').forEach(el=>el.classList.add('hiddenObject'));
+      this.drawBoard();
+      this.rows = this.get('.row');
       for(var i = 1;i<4;i++){
         this.snakeCoords.push({row:2,ind:i});
       }
+      this.playerMaxScore = this.getPlayerMaxScore(); 
       document.getElementById('playerFullname').innerHTML = this.playerName;
+      document.getElementById('playerRecord').innerHTML = this.playerMaxScore;
       document.onkeydown = this.changeDirection;
-  },
+  }, 
   startGame:function(){
+      this.updateLeaderBoard();
       this.gameIsStarted = true;
       this.setCoords();
       this.setDirection('right');
@@ -111,9 +142,10 @@ var game = {
   },
   getNewPointBox:function(){
       this.point = this.point + 1;
-      this.speed -= 0.1;
+      this.speed -= 1;
+      this.updatePlayerMaxScore(); 
+      this.updateLeaderBoard();
       document.getElementById("playerScore").innerHTML = this.point;
-
       var boxes = document.querySelectorAll('.box');
       var randomIndex = this.getRandomIndex(0,boxes.length-1);
       var randomBox = boxes[randomIndex];
@@ -183,11 +215,27 @@ var game = {
     }
     return gameContinues;
   },
+  updatePlayerMaxScore:function(){
+    var self = this;
+    var players = JSON.parse(localStorage.getItem('players'));
+
+    players.map(function(el){ 
+      if(el.nickName == self.playerName){
+         self.playerMaxScore = (self.point <= self.playerMaxScore) ? self.playerMaxScore : self.point;
+         el.maxScore = self.playerMaxScore;
+      }
+      return el;
+    });
+ 
+    localStorage.setItem('players',JSON.stringify(players));
+
+  },
   gameOver:function(){
     var self = this;
     clearInterval(this.interval);
     this.gameIsStarted = false;
-
+    this.updatePlayerMaxScore();
+    document.getElementById('playerRecord').innerHTML = this.playerMaxScore;
     self.gameOverInterval = setInterval(function(){
       self.get('.black').forEach(function(el,ind){ el.classList.toggle('fakeBlack'); });
     },200);
@@ -197,22 +245,19 @@ var game = {
   setGameOverContent:function(){
     var self = game;
     clearInterval(self.gameOverInterval);
-    var gameOverTextNode = document.createElement("h2");
-    gameOverTextNode.id =  "gameOverTextNode";
-    gameOverTextNode.innerHTML = "GAME OVER";
-    var restartButton = document.createElement('button');
-    restartButton.innerHTML = "play again";
-    restartButton.setAttribute('onClick','game.restartGame()');
-    restartButton.classList.add('btn');
     self.board.style.width = self.board.offsetWidth + "px";
     self.board.style.height = self.board.offsetHeight + "px";
-    self.board.innerHTML = "";
-    self.board.appendChild(gameOverTextNode);
-    self.board.appendChild(restartButton);
+    self.board.innerHTML = document.getElementById('gameOverContent').innerHTML;
+    self.resetGameParameters();
+    self.updateLeaderBoard();
+  },
+  changePlayer:function(){
+    var newPlayer = document.getElementById('playerName').value.trim();
+    if(newPlayer.length < 1) return alert('type new player name!');
+    this.playerName = newPlayer;
   },
   restartGame:function(){
     this.board.innerHTML = "";
-    this.resetGameParameters();
     this.init();
     this.startGame();
   },
@@ -238,7 +283,30 @@ var game = {
         break;
         default: return;
       }
+  },
+  updateLeaderBoard:function(){
+    var self = this;
+    var tbody = document.getElementById('tbody');
+    
+    var players = JSON.parse(localStorage.getItem('players')).sort(function(x,y){ return y.maxScore-x.maxScore; })
+    if(!players.length) return;
+    tbody.innerHTML = "";
+    players.forEach(function(player,ind){
+      var playerTR = document.createElement('tr');
+      var playerRaitingTD = document.createElement('td');
+      playerRaitingTD.innerHTML = ind+1
+      var playerNameTD = document.createElement('td');
+      playerNameTD.innerHTML = player.nickName;
+      if(player.nickName == self.playerName) playerTR.classList.add('currentPlayer');
+      var playerMaxScoreTD = document.createElement('td');
+      playerMaxScoreTD.innerHTML = player.maxScore;
+      playerTR.appendChild(playerRaitingTD);
+      playerTR.appendChild(playerNameTD);
+      playerTR.appendChild(playerMaxScoreTD);
+      tbody.appendChild(playerTR);
+    })
   }
 }
 
-//game.init();
+game.updateLeaderBoard();
+document.onkeydown = game.tryStartGame;
