@@ -1,6 +1,6 @@
 
 NodeList.prototype.forEach = HTMLCollection.prototype.forEach = Array.prototype.forEach;
-//localStorage.setItem("players", JSON.stringify([]));
+if(localStorage.getItem("players") === null) localStorage.setItem("players", JSON.stringify([]));
 var mainInterval = null;
 var game = {
   board:document.getElementById("board"),
@@ -44,15 +44,15 @@ var game = {
   submitPleyer:function(inputID){
       var name = this.getid(inputID).value.trim();
       if(name.length < 1) return alert('write your name(nickname).');
-      
+
       this.playerName = name;
       localStorage.setItem("activePlayer", this.playerName);
       if(!this.checkPlayerName(this.playerName)){
         var players = JSON.parse(localStorage.getItem('players'));
         var playerObj = {nickName:this.playerName,maxScore:0};
         players.push(playerObj)
-        localStorage.setItem("players", JSON.stringify(players));  
-      }     
+        localStorage.setItem("players", JSON.stringify(players));
+      }
       this.getid('submitPleyer').setAttribute('disabled','disabled');
       this.getAll('.textInfo').forEach(el => el.classList.remove('hiddenObject'));
       var self = this;
@@ -84,11 +84,11 @@ var game = {
       for(var i = 1;i<4;i++){
         this.snakeCoords.push({row:2,ind:i});
       }
-      this.playerMaxScore = this.getPlayerMaxScore(); 
+      this.playerMaxScore = this.getPlayerMaxScore();
       document.getElementById('playerFullname').innerHTML = this.playerName;
       document.getElementById('playerRecord').innerHTML = this.playerMaxScore;
       document.onkeydown = this.changeDirection;
-  }, 
+  },
   startGame:function(){
       this.updateLeaderBoard();
       this.gameIsStarted = true;
@@ -143,7 +143,7 @@ var game = {
   getNewPointBox:function(){
       this.point = this.point + 1;
       this.speed -= 1;
-      this.updatePlayerMaxScore(); 
+      this.updatePlayerMaxScore();
       this.updateLeaderBoard();
       this.getid("playerScore").innerHTML = this.point;
       var boxes = document.querySelectorAll('.box');
@@ -222,14 +222,14 @@ var game = {
     var self = this;
     var players = JSON.parse(localStorage.getItem('players'));
 
-    players.map(function(el){ 
+    players.map(function(el){
       if(el.nickName == self.playerName){
          self.playerMaxScore = (self.point <= self.playerMaxScore) ? self.playerMaxScore : self.point;
          el.maxScore = self.playerMaxScore;
       }
       return el;
     });
- 
+
     localStorage.setItem('players',JSON.stringify(players));
 
   },
@@ -290,7 +290,7 @@ var game = {
   updateLeaderBoard:function(){
     var self = this;
     var tbody = self.getid('tbody');
-    
+
     var players = JSON.parse(localStorage.getItem('players')).sort(function(x,y){ return y.maxScore-x.maxScore; })
     if(!players.length) return;
     tbody.innerHTML = "";
